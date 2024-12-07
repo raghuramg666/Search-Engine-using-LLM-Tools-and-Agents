@@ -1,4 +1,5 @@
 name: Sync to Hugging Face hub
+
 on:
   push:
     branches: [main]
@@ -14,6 +15,12 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
+
+      - name: Pull latest changes
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: git pull https://raghu6a6:$HF_TOKEN@huggingface.co/spaces/raghu6a6/Search_Engine_LLM main
+
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
