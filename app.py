@@ -13,15 +13,17 @@ load_dotenv()
 
 # Custom DuckDuckGo Tool with Rate Limit Handling
 class RateLimitedDuckDuckGo(DuckDuckGoSearchRun):
-    def _run(self, query: str, verbose: bool = False):
+    def run(self, query: str):
         try:
-            return super()._run(query, verbose=verbose)
+            return super().run(query)
         except Exception as e:
             if "RatelimitException" in str(e):
-                time.sleep(5)  # Retry after 5 seconds
-                return super()._run(query, verbose=verbose)
+                st.warning("Rate limit reached. Retrying in 5 seconds...")
+                time.sleep(5)  # Wait before retrying
+                return super().run(query)
             else:
-                raise e  # Re-raise other exceptions
+                st.error(f"An error occurred while searching: {str(e)}")
+                return "I encountered an error while searching."
 
 # Arxiv tool setup
 api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=300)
