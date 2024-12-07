@@ -1,29 +1,34 @@
 import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_community.utilities import ArxivAPIWrapper, WikipediaAPIWrapper
-from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun, DuckDuckGoSearchRun
+from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain.agents import initialize_agent, AgentType
 from langchain.callbacks import StreamlitCallbackHandler
-import time
-import os
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Custom DuckDuckGo Tool with Rate Limit Handling
-class RateLimitedDuckDuckGo(DuckDuckGoSearchRun):
-    def run(self, query: str):
+# Custom Brave Search Tool
+class BraveSearch:
+    def search(self, query: str):
         try:
-            return super().run(query)
+            url = f"https://search.brave.com/search?q={query.replace(' ', '+')}"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            response = requests.get(url, headers=headers)
+            soup = BeautifulSoup(response.text, "html.parser")
+            results = []
+            for link in soup.select("a.result-title"):
+                results.append(link["href"])
+                if len(results) >= 5:  # Limit to top 5 results
+                    break
+            return results if results else ["No results found."]
         except Exception as e:
-            if "RatelimitException" in str(e):
-                st.warning("Rate limit reached. Retrying in 5 seconds...")
-                time.sleep(5)  # Wait before retrying
-                return super().run(query)
-            else:
-                st.error(f"An error occurred while searching: {str(e)}")
-                return "I encountered an error while searching."
+            return [f"An error occurred: {str(e)}"]
 
 # Arxiv tool setup
 api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=300)
@@ -33,11 +38,11 @@ arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
 api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=250)
 wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
 
-# DuckDuckGo tool setup
-search = RateLimitedDuckDuckGo(name="Search")
+# Initialize Brave Search
+brave_search = BraveSearch()
 
 # Streamlit Title
-st.title("LangChain - Chat with Search Tools")
+st.title("LangChain - Chat with Brave Search")
 
 # Sidebar for settings
 st.sidebar.title("Settings")
@@ -67,12 +72,12 @@ if prompt := st.chat_input(placeholder="What is machine learning?"):
     # Initialize ChatGroq and tools
     try:
         llm = ChatGroq(groq_api_key=api_key, model_name="Llama3-8b-8192", streaming=True)
-        tools = [search, arxiv, wiki]
+        tools = [brave_search, arxiv, wiki]
         search_agent = initialize_agent(
             tools,
             llm,
             agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            handle_parsing_errors=True  # Adjusted argument
+            handle_parsing_errors=True
         )
 
         # Generate response using the agent
