@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_community.utilities import ArxivAPIWrapper, WikipediaAPIWrapper
-from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun, DuckDuckGoSearchRun
+from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain.agents import initialize_agent, AgentType
 from langchain.callbacks import StreamlitCallbackHandler
 import time
@@ -11,6 +11,18 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Custom DuckDuckGo Tool with Rate Limit Handling
+class RateLimitedDuckDuckGo(DuckDuckGoSearchRun):
+    def _run(self, query: str, verbose: bool = False):
+        try:
+            return super()._run(query, verbose=verbose)
+        except Exception as e:
+            if "RatelimitException" in str(e):
+                time.sleep(5)  # Retry after 5 seconds
+                return super()._run(query, verbose=verbose)
+            else:
+                raise e  # Re-raise other exceptions
+
 # Arxiv tool setup
 api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=300)
 arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
@@ -19,20 +31,7 @@ arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
 api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=250)
 wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
 
-# DuckDuckGo tool setup with rate-limiting handling
-class RateLimitedDuckDuckGo(DuckDuckGoSearchRun):
-    def run(self, query: str):
-        try:
-            return super().run(query)
-        except Exception as e:
-            if "RatelimitException" in str(e):
-                st.warning("Rate limit reached. Retrying in 5 seconds...")
-                time.sleep(5)  # Wait before retrying
-                return super().run(query)
-            else:
-                st.error(f"An error occurred: {str(e)}")
-                return "I encountered an error while searching."
-
+# DuckDuckGo tool setup
 search = RateLimitedDuckDuckGo(name="Search")
 
 # Streamlit Title
