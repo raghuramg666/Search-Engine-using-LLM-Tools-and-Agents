@@ -2,6 +2,7 @@ import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_community.utilities import ArxivAPIWrapper, WikipediaAPIWrapper
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
+from langchain.tools import BaseTool
 from langchain.agents import initialize_agent, AgentType
 from langchain.callbacks import StreamlitCallbackHandler
 import requests
@@ -12,8 +13,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Custom Brave Search Tool
-class BraveSearch:
-    def search(self, query: str):
+class BraveSearchTool(BaseTool):
+    name = "BraveSearch"
+    description = "A tool to perform web searches using Brave Search for relevant information."
+
+    def _run(self, query: str):
         try:
             url = f"https://search.brave.com/search?q={query.replace(' ', '+')}"
             headers = {
@@ -26,9 +30,12 @@ class BraveSearch:
                 results.append(link["href"])
                 if len(results) >= 5:  # Limit to top 5 results
                     break
-            return results if results else ["No results found."]
+            return "\n".join(results) if results else "No results found."
         except Exception as e:
-            return [f"An error occurred: {str(e)}"]
+            return f"An error occurred during the search: {str(e)}"
+
+    def _arun(self, query: str):
+        raise NotImplementedError("BraveSearchTool does not support async execution.")
 
 # Arxiv tool setup
 api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=300)
@@ -39,7 +46,7 @@ api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=25
 wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
 
 # Initialize Brave Search
-brave_search = BraveSearch()
+brave_search = BraveSearchTool()
 
 # Streamlit Title
 st.title("LangChain - Chat with Brave Search")
