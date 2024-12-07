@@ -11,8 +11,6 @@ faiss-cpu
 langchain-groq
 fastapi
 uvicorn
-HfHubHTTPError
-HfApi
 sentence-transformers
 langserve
 duckduckgo-search
