@@ -15,13 +15,13 @@ jobs:
           fetch-depth: 0  # Fetch full history to handle branch divergence
           lfs: true  # Ensure LFS files are included if used
 
-      # Step 2: Configure Git to handle divergence and pull latest changes
+      # Step 2: Pull latest changes, allowing unrelated histories
       - name: Pull latest changes
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git config pull.rebase false  # Use merge strategy to handle divergence
-          git pull https://raghu6a6:$HF_TOKEN@huggingface.co/spaces/raghu6a6/Search_Engine_LLM main
+          git config pull.rebase false  # Use merge strategy
+          git pull --allow-unrelated-histories https://raghu6a6:$HF_TOKEN@huggingface.co/spaces/raghu6a6/Search_Engine_LLM main
 
       # Step 3: Push local changes to Hugging Face hub
       - name: Push to hub
