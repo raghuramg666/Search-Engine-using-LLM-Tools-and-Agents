@@ -15,7 +15,13 @@ jobs:
           fetch-depth: 0  # Fetch full history to handle branch divergence
           lfs: true  # Ensure LFS files are included if used
 
-      # Step 2: Pull latest changes, allowing unrelated histories
+      # Step 2: Set Git user identity
+      - name: Configure Git identity
+        run: |
+          git config --global user.email "raghu6a6@gmail.com"
+          git config --global user.name "raghuramg666"
+
+      # Step 3: Pull latest changes, allowing unrelated histories
       - name: Pull latest changes
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -23,7 +29,7 @@ jobs:
           git config pull.rebase false  # Use merge strategy
           git pull --allow-unrelated-histories https://raghu6a6:$HF_TOKEN@huggingface.co/spaces/raghu6a6/Search_Engine_LLM main
 
-      # Step 3: Push local changes to Hugging Face hub
+      # Step 4: Push local changes to Hugging Face hub
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
